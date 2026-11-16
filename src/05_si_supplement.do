@@ -141,12 +141,51 @@ dtable `demos', by(sample_status) svy subpop(if !missing(sample_status)) ///
 
 *------------ Export? -----------------*
 di "Export STable1? (Y/N)", _request(RESP)
-if strlower("$RESP")=="y" collect export "stbl1_comparison_by_inclusion.docx", replace
+if strlower("$RESP")=="y" collect export "$out/tblS1_comparison_by_inclusion.docx", replace
 qui else di as err "Table not saved."
 
+*-----------------------------------------------------*
+* Supplemental Table 2. Comparison of national vs CLIMB weighted samples
+*-----------------------------------------------------*
+*--Create weighted demographic %s from analytic sample.
+* Def CPS benchmarks (static weighted %; rownames = collect tags)
+matrix CPS = (20.1 \ 25.8 \ 23.5 \ 30.6 \ 48.8 \ 51.2 \ 61.4 \ 12.1 \ 17.5 \ 9.1)
+matrix rownames CPS = 1.AGE4_T4 2.AGE4_T4 3.AGE4_T4 4.AGE4_T4 1.GENDER_T4 2.GENDER_T4 ///
+    1.race_col_T4 2.race_col_T4 3.race_col_T4 4.race_col_T4
+
+* Run dtable for sample cols 
+local demos "i.AGE4_T4 i.GENDER_T4 i.race_col_T4"
+dtable `demos', svy subpop(if _insample==1) ///
+    factor(, statistics(fvrawfrequency fvrawpercent fvpercent)) ///
+    title("Supplemental Table 2. Comparison of Weighted and Unweighted Demographic Distribution of Analytic Sample to CPS Benchmarks")
+collect addtags source[sample]
+
+* Add CPS values to collection
+local i = 0
+foreach lev in `: rownames CPS' {
+    collect get cps = (CPS[`++i', 1]), tags(var[`lev'] source[cps])
+}
+
+* Def composites and formats
+collect composite define unwt = frequency fvrawfrequency fvrawpercent, trim replace
+collect composite define wt   = frequency fvpercent, trim replace
+collect style cell result[frequency fvrawfrequency], nformat(%9.0fc)
+collect style cell result[fvrawpercent], nformat(%5.1f) sformat("(%s%%)")
+collect style cell result[fvpercent cps], nformat(%5.1f) sformat("%s%%")
+
+* Apply lbls and layout
+collect label levels source sample "Analytic Sample" cps "Current Population Survey", modify
+collect label levels result unwt "Unweighted N (%)" wt "Weighted %" cps "Weighted %", modify
+collect style header source result, title(hide) level(label)
+collect style column, dups(center)
+collect layout (var) (source[sample]#result[unwt wt] source[cps]#result[cps])
+
+* Preview and export
+collect preview 
+collect export "$out/tblS2_demo_distribution_with_cps.docx", replace
 
 *-----------------------------------------------------*
-* Supplemental Table 2. Unadjusted ORs (main model)
+* Supplemental Table 3. Unadjusted ORs (main model)
 *-----------------------------------------------------*
 *--Generate table with unadjusted ORs for main model covars.
 * Iterate through each var and collect results
@@ -170,137 +209,14 @@ collect stars _r_p 0.001 "***" 0.01 "** " 0.05 "* ", attach(_r_b) shownote
 collect preview
 
 * Add text and finalize
-collect title "Supplemental Table 2. Unadjusted survey-weighted association between 2023 characteristics and 2024 suicidal ideation"
+collect title "Supplemental Table 3. Unadjusted survey-weighted association between 2023 characteristics and 2024 suicidal ideation"
 collect notes "Notes: All unadjusted models use the final analytic sample of N=1,896 participants."
 collect preview
 
-collect export "$out/tblS2_unadjusted_table.docx", replace
+collect export "$out/tblS3_unadjusted_table.docx", replace
 
 *-----------------------------------------------------*
-* Supplemental Table 3. Joint tests of effect modification by race
-*-----------------------------------------------------*
-*--Fit main model + one race interaction per predictor and test interaction terms jointly.
-collect clear
-local order ""
-foreach term of global stratpred {
-    * Get var name from factor-variable term
-    local v = substr("`term'", strpos("`term'", ".") + 1, .)
-    local order `order' `v'
-
-    * Fit main model + race interaction for this predictor
-    qui svy, subpop(if _insample==1): logit si_T5 ${predictors} ib1.race_col_T4#`term'
-    local n_sub = e(N_sub)
-
-    * Joint design-adjusted Wald test of race x predictor terms
-    qui testparm ib1.race_col_T4#`term'
-    collect get ///
-        n = (`n_sub') ///
-        F = (r(F)) ///
-        df1 = (r(df)) ///
-        df2 = (r(df_r)) ///
-        p = (r(p)), ///
-        tags(predictor[`v'])
-
-    * Label predictor with var label
-    local lbl : var label `v'
-    local x = ustrunescape("\u00d7")
-    collect label levels predictor `v' "`lbl' `x' Race and Ethnicity", modify
-}
-
-* Style collect table
-collect layout (predictor[`order']) (result[n F df1 p])
-collect label dim predictor "Predictor", modify
-collect label levels result n "N" F "F" df1 "df1" df2 "df2" p "p", modify
-collect style cell result[n], nformat(%9.0fc)
-collect style cell result[F], nformat(%5.2f)
-collect style cell result[df1 df2], nformat(%3.0f)
-collect style cell result[p], nformat(%5.3f) minimum(0.001)
-collect title "Supplemental Table 3. Tests of effect modification by race and ethnicity"
-collect notes "Abbreviations: df1 - number of interaction terms tested"
-collect notes "Note: Each row displays a separate survey-weighted logistic regression of 2024 suicidal ideation on all main-model covariates plus an interaction term between race and ethnicity and the specified predictor. Estimates presented are from the design-adjusted Wald test assessing if all interaction terms for that predictor are jointly zero."
-collect notes "Health insurance status has one race and ethnicity * insurance cell where no respondents reported suicidal ideation leading to an unestimable interaction term. This cell is excluded from the model leading to N = 1,891 with 2 degrees of freedom."
-collect preview
-
-.*------------ Export? -----------------*
-di "Export STable 3? (Y/N)", _request(RESP)
-if strlower("$RESP")=="y" collect export "$out/tblS3_effect_modification_test.docx", replace
-qui else di as err "Table not saved."
-
-*-----------------------------------------------------*
-* Supplemental Table 4. Stratified logistic regression models
-*-----------------------------------------------------*
-*--Export survey-weighted stratified logistic regression results for paper (all groups)
-* Init stratified predictor global
-global stratpred : subinstr global predictors "i.race_col_T4 " ""
-fvdel, in($stratpred) out(stratpred_list)
-
-* Collect all survey-weighted model outputs
-collect clear
-est clear
-forval i=1/4 {
-	collect: svy, subpop(if _insample==1 & race_col_T4==`i'): logistic si_T5 $stratpred, baselevels
-    eststo m`i'
-}
-
-* Init layout
-collect layout (colname#result[_r_b _r_ci]) (cmdset)
-collect style use table-reg1-fv1
-collect style row stack, nobinder indent
-
-* Integrate sample sizes
-foreach x in N_sub {
-    collect addtags extra[`x'], fortags(result[`x']) 
-}
-collect label levels extra N_sub "# observations", modify
-collect recode result N_sub=_r_b
-
-* Style cells
-collect style cell result[_r_b _r_ci], nformat(%5.2f)
-collect style cell result, empty("--")
-collect style cell result[_r_ci], cidelimiter(", ")
-collect style cell result[_r_ci], sformat("[%s]")
-collect style cell extra[N_sub], nformat(%5.0f)
-collect style showbase factor
-collect style cell header_cell_contents[factor dimension], font(, bold) // bolded fv level headers
-collect style cell result[_r_p], nformat(%4.3f) min(0.001) // present extremely small p-values as "<0.001" 
-collect stars _r_p 0.001 "***" 0.01 "** " 0.05 "* ", attach(_r_b) shownote
-collect style header result, level(hide)
-
-* Get list of base vars with no "b" (e.g., ib2.SEX_T7 -> 2.SEX_T7)
-local basetags
-foreach term of global stratpred {
-    if regexm("`term'", "^ib([0-9]+)\.(.+)$") {
-        local basetags "`basetags' `=regexs(1)'.`=regexs(2)'"
-    }
-}
-di "`basetags'"
-
-* Replace OR with "Ref" and harmonize SD display for referents
-collect style cell colname[`basetags']#result[_r_b], nformat(%5.2f) minimum(999999, label("Ref")) font(,italic) halign(right)
-collect preview
-collect title "Supplemental Table 4. Stratified survey-weighted logistic regression estimating odds ratios of 2024 suicidal ideation using 2023 characteristics (all race and ethnicity groups)"
-
-* Get counts
-forval i=1/4 {
-    qui count if race_col_T4==`i'
-    local c`i' = string(`r(N)', "%5.0fc")
-    di "`c`i''"
-}
-collect notes "Notes: From left to right, Table 4 displays the the odds ratios (95% CI) estimated for the White, non-Hispanic subgroup (n=`c1'), the Black, non-Hispanic subgroup (N=`c2'), the Hispanic subgroup (N=`c3'), and the The Other, non-Hispanic group is not shown here due to small sample size and wide intervals."
-
-* Set model names
-collect label levels cmdset ///
-    1 "Model (1) White, non-Hispanic" 2 "Model (2) Black, non-Hispanic" ///
-    3 "Model (3) Hispanic" 4 "Model (4) Other, non-Hispanic", modify
-collect preview
-
-*------------ Export? -----------------*
-di "Export STable 4? (Y/N)", _request(RESP)
-if strlower("$RESP")=="y" collect export "$out/tblS4_stratified_models_allgrps.docx", replace
-qui else di as err "Table not saved."
-
-*-----------------------------------------------------*
-* Supplemental Table 5. VIF of main model
+* Supplemental Table 4. VIF of main model
 *-----------------------------------------------------*
 *--Generate VIF table for main model.
 collect clear
@@ -344,104 +260,13 @@ collect notes "Notes: VIFs estimated using unweighted regression model with iden
 collect preview
 
 *------------ Export? -----------------*
-di "Export Supplemental Table 5 (VIFs)? (Y/N)", _request(RESP)
-if strlower("$RESP")=="y" collect export "$out/tblS5_main_model_vif.docx", replace
+di "Export Supplemental Table 4 (VIFs)? (Y/N)", _request(RESP)
+if strlower("$RESP")=="y" collect export "$out/tblS4_main_model_vif.docx", replace
 qui else di as err "Table not saved."
 
-*-----------------------------------------------------*
-* Supplemental Table 6. Single asset model series comparison
-*-----------------------------------------------------*
-*--Generate a comparison table between demos only, demos + 1 asset, and full model.
-* Define variable macros
-global base_covs "ib4.AGE4_T4 ib1.GENDER_T4 ib1.race_col_T4 ib0.prev_depression_T4"
-global assets "ib3.hh_income_imp_tert_T4 ib3.locf_hh_savings_tert_T4 ib1.locf_hh_debt_tert_T4 ib1.insurance_binary_T4 ib1.home_own_T4 ib1.educ_college_T4 ib1.marital_binary_T4 ib1.religious_attendance_T4 ib1.employment_T4 ib1.social_support_T4"
-
-collect clear
-
-* Column 3: full model (estimated first to preserve var order)
-collect, tag(model[3]): svy, subpop(if _insample==1): logistic si_T5 $predictors, baselevels
-local N_full = e(N_sub)
-
-* Column 1: base vars only
-collect, tag(model[1]): svy, subpop(if _insample==1): logistic si_T5 $base_covs, baselevels
-
-* Column 2: base vars + 1 asset per model
-local j = 0
-foreach asset of global assets {
-    local ++j
-    di as txt "Model 2.`j': `asset'"
-    qui collect, tag(model[s`j']): svy, subpop(if _insample==1): logistic si_T5 $base_covs `asset', baselevels
-
-    * Stop if sample is not equal to the full model sample
-    if e(N_sub) != `N_full' {
-        di as err "N_sub for `asset' (`e(N_sub)') differs from fully adjusted model (`N_full')"
-        exit
-    }
-
-    * Get each assets levels and recode to display in column 2
-    qui fvexpand `asset' if _insample==1
-    local asset_tags = subinstr("`r(varlist)'", "b.", ".", .)
-    collect recode model s`j' = 2, fortags(colname[`asset_tags'])
-}
-
-* Integrate the sample size (same for all col2 items after passing check above)
-collect addtags extra[N_sub], fortags(result[N_sub])
-collect label levels extra N_sub "# observations", modify
-collect recode result N_sub = _r_b
-collect recode model s1 = 2, fortags(extra[N_sub])
-
-* Set column labels
-collect label levels model 1 "Model 1: Base covariates" ///
-                           2 "Model 2: Base + single asset" ///
-                           3 "Model 3: Fully adjusted", modify
-collect label levels result _r_b "Odds Ratio", modify
-
-* Display OR + 95% CI only
-local res "_r_b _r_ci"
-collect layout (colname extra) (model[1 2 3]#result[`res'])
-collect style use table-reg1-fv1
-collect style row stack, nobinder indent
-collect style header model, title(hide)
-
-* Style cells
-collect style cell result[_r_b _r_ci _r_se], nformat(%5.2f)
-collect style cell result, empty("--")
-collect style cell result[_r_ci], cidelimiter(", ")
-collect style cell result[_r_ci], sformat("(%s)")
-collect style cell extra[N_sub], nformat(%5.0f)
-collect style showbase factor
-collect style cell header_cell_contents[factor dimension], font(, bold) // bolded fv level headers
-collect stars _r_p 0.001 "***" 0.01 "** " 0.05 "* ", attach(_r_b) shownote
-
-*----- Label referent level rows -----*
-* Get list of base vars with no "b" (e.g., ib2.SEX_T7 -> 2.SEX_T7)
-local basetags
-foreach term of global predictors {
-    if regexm("`term'", "^ib([0-9]+)\.(.+)$") {
-        local basetags "`basetags' `=regexs(1)'.`=regexs(2)'"
-    }
-}
-
-* Replace OR with "Ref" for referents
-collect style cell colname[`basetags']#result[_r_b], nformat(%5.2f) minimum(999999, label("Ref")) font(,italic) halign(right)
-
-* Add text
-local N_fmt = strtrim(string(`N_full', "%9.0fc"))
-collect title "Supplemental Table 6. Sequential survey-weighted logistic regression models estimating 2024 suicidal ideation using 2023 characteristics"
-collect notes "Notes: CLIMB Waves 4-5 data, collected March-April 2023-2024. All models use the same analytic sample (N=`N_fmt'). Base covariates are age, gender, race and ethnicity, and prior depression."
-collect notes "Model 1 includes base covariates only. Model 2 displays each asset's odds ratios from a separate model containing that asset plus the base covariates. Base covariate estimates vary across these 10 models and are not shown. Model 3 is the main model and includes all assets."
-collect notes "Estimands: The estimates in Model 2 assess the association between each asset and suicidal ideation conditional on the base covariates. Model 3 displays the net association of all assets; this removes confounding by other assets but may mask assessment of effects that operate through overlapping pathways."
-
-* Output table
-collect preview
-
-*------------ Export? -----------------*
-di "Export Supplemental Table 6? (Y/N)", _request(RESP)
-if strlower("$RESP")=="y" collect export "$out/tblS6_sequential_models.docx", replace
-qui else di as err "Table not saved."
 
 *-----------------------------------------------------*
-* Supplemental Table 7. Adjusted risk ratios
+* Supplemental Table 5. Adjusted risk ratios
 *-----------------------------------------------------*
 *--Logistic regression model estimating associations with W5 SI
 * Estimate full model - ORs estimated first to use the same table layout but cleared
@@ -566,7 +391,7 @@ collect style cell colname[`basetags']#result[_r_se], nformat(%5.2f) minimum(999
 collect preview
 
 * Add text
-collect title "Supplemental Table 7. Adjusted risk ratios of 2024 suicidal ideation by 2023 characteristics"
+collect title "Supplemental Table 5. Adjusted risk ratios of 2024 suicidal ideation by 2023 characteristics"
 collect notes "Notes: CLIMB Waves 4-5 data, collected March-April 2023-2024. Includes N=1,896 observations with complete cases."
 collect notes "Table presents main model adjusted risk ratios (ARR) for each covariate when all other covariates held at observed values. 95% CIs and p-values are computed on the log scale using the delta method and design-based degrees of freedom. Adjusted odds ratios are presented in Table 3."
 
@@ -574,9 +399,82 @@ collect notes "Table presents main model adjusted risk ratios (ARR) for each cov
 collect preview
 
 *------------ Export? -----------------*
-di "Export Supplemental Table 7? (Y/N)", _request(RESP)
-if strlower("$RESP")=="y" collect export "$out/tbS7_main_model_ARRs.docx", replace
+di "Export Supplemental Table 5? (Y/N)", _request(RESP)
+if strlower("$RESP")=="y" collect export "$out/tbS5_main_model_ARRs.docx", replace
 else di as err "Table not saved."
+
+*-----------------------------------------------------*
+* Supplemental Table 6. Stratified logistic regression models
+*-----------------------------------------------------*
+*--Export survey-weighted stratified logistic regression results for paper (all groups)
+* Init stratified predictor global
+global stratpred : subinstr global predictors "i.race_col_T4 " ""
+fvdel, in($stratpred) out(stratpred_list)
+
+* Collect all survey-weighted model outputs
+collect clear
+est clear
+forval i=1/4 {
+	collect: svy, subpop(if _insample==1 & race_col_T4==`i'): logistic si_T5 $stratpred, baselevels
+    eststo m`i'
+}
+
+* Init layout
+collect layout (colname#result[_r_b _r_ci]) (cmdset)
+collect style use table-reg1-fv1
+collect style row stack, nobinder indent
+
+* Integrate sample sizes
+foreach x in N_sub {
+    collect addtags extra[`x'], fortags(result[`x']) 
+}
+collect label levels extra N_sub "# observations", modify
+collect recode result N_sub=_r_b
+
+* Style cells
+collect style cell result[_r_b _r_ci], nformat(%5.2f)
+collect style cell result, empty("--")
+collect style cell result[_r_ci], cidelimiter(", ")
+collect style cell result[_r_ci], sformat("[%s]")
+collect style cell extra[N_sub], nformat(%5.0f)
+collect style showbase factor
+collect style cell header_cell_contents[factor dimension], font(, bold) // bolded fv level headers
+collect style cell result[_r_p], nformat(%4.3f) min(0.001) // present extremely small p-values as "<0.001" 
+collect stars _r_p 0.001 "***" 0.01 "** " 0.05 "* ", attach(_r_b) shownote
+collect style header result, level(hide)
+
+* Get list of base vars with no "b" (e.g., ib2.SEX_T7 -> 2.SEX_T7)
+local basetags
+foreach term of global stratpred {
+    if regexm("`term'", "^ib([0-9]+)\.(.+)$") {
+        local basetags "`basetags' `=regexs(1)'.`=regexs(2)'"
+    }
+}
+di "`basetags'"
+
+* Replace OR with "Ref" and harmonize SD display for referents
+collect style cell colname[`basetags']#result[_r_b], nformat(%5.2f) minimum(999999, label("Ref")) font(,italic) halign(right)
+collect preview
+collect title "Supplemental Table 6. Stratified survey-weighted logistic regression estimating odds ratios of 2024 suicidal ideation using 2023 characteristics (all race and ethnicity groups)"
+
+* Get counts
+forval i=1/4 {
+    qui count if race_col_T4==`i'
+    local c`i' = string(`r(N)', "%5.0fc")
+    di "`c`i''"
+}
+collect notes "Notes: From left to right, Table 4 displays the the odds ratios (95% CI) estimated for the White, non-Hispanic subgroup (n=`c1'), the Black, non-Hispanic subgroup (N=`c2'), the Hispanic subgroup (N=`c3'), and the The Other, non-Hispanic group is not shown here due to small sample size and wide intervals."
+
+* Set model names
+collect label levels cmdset ///
+    1 "Model (1) White, non-Hispanic" 2 "Model (2) Black, non-Hispanic" ///
+    3 "Model (3) Hispanic" 4 "Model (4) Other, non-Hispanic", modify
+collect preview
+
+*------------ Export? -----------------*
+di "Export STable 6? (Y/N)", _request(RESP)
+if strlower("$RESP")=="y" collect export "$out/tblS6_stratified_models_allgrps.docx", replace
+qui else di as err "Table not saved."
 
 *-----------------------------------------------------*
 * Supplemental Table 8. Stratified model ARRs
@@ -701,7 +599,7 @@ collect preview
 collect title "Supplemental Table 8. Stratified adjusted risk ratios of 2024 suicidal ideation by 2023 characteristics"
 
 collect notes "Notes: From left to right, Table 4 displays the adjusted risk ratios [95% CI] estimated for the White, non-Hispanic subgroup (n=`c1'), the Black, non-Hispanic subgroup (n=`c2'), the Hispanic subgroup (n=`c3'), and the Other, non-Hispanic subgroup (n=`c4'). See Supplemental Table 4 for a table with odds ratios for each group."
-collect notes "Table presents main model adjusted risk ratios (ARR) for each covariate when all other covariates held at observed values. 95% CIs and p-values are computed on the log scale using the delta method and design-based degrees of freedom. Stratified adjusted odds ratios are presented in Supplemental Table 4."
+collect notes "Table presents main model adjusted risk ratios (ARR) for each covariate when all other covariates held at observed values. 95% CIs and p-values are computed on the log scale using the delta method and design-based degrees of freedom."
 
 * Set model names
 collect label levels cmdset ///
@@ -710,9 +608,151 @@ collect label levels cmdset ///
 collect preview
 
 *------------ Export? -----------------*
-di "Export Supplemental Table 8? (Y/N)", _request(RESP)
-if strlower("$RESP")=="y" collect export "$out/tblS8_stratified_models_ARRs.docx", replace
+di "Export Supplemental Table 7? (Y/N)", _request(RESP)
+if strlower("$RESP")=="y" collect export "$out/tblS7_stratified_models_ARRs.docx", replace
 else di as err "Table not saved."
+
+*-----------------------------------------------------*
+* Supplemental Table 8. Joint tests of effect modification by race
+*-----------------------------------------------------*
+*--Fit main model + one race interaction per predictor and test interaction terms jointly.
+collect clear
+local order ""
+foreach term of global stratpred {
+    * Get var name from factor-variable term
+    local v = substr("`term'", strpos("`term'", ".") + 1, .)
+    local order `order' `v'
+
+    * Fit main model + race interaction for this predictor
+    qui svy, subpop(if _insample==1): logit si_T5 ${predictors} ib1.race_col_T4#`term'
+    local n_sub = e(N_sub)
+
+    * Joint design-adjusted Wald test of race x predictor terms
+    qui testparm ib1.race_col_T4#`term'
+    collect get ///
+        n = (`n_sub') ///
+        F = (r(F)) ///
+        df1 = (r(df)) ///
+        df2 = (r(df_r)) ///
+        p = (r(p)), ///
+        tags(predictor[`v'])
+
+    * Label predictor with var label
+    local lbl : var label `v'
+    local x = ustrunescape("\u00d7")
+    collect label levels predictor `v' "`lbl' `x' Race and Ethnicity", modify
+}
+
+* Style collect table
+collect layout (predictor[`order']) (result[n F df1 p])
+collect label dim predictor "Predictor", modify
+collect label levels result n "N" F "F" df1 "df1" df2 "df2" p "p", modify
+collect style cell result[n], nformat(%9.0fc)
+collect style cell result[F], nformat(%5.2f)
+collect style cell result[df1 df2], nformat(%3.0f)
+collect style cell result[p], nformat(%5.3f) minimum(0.001)
+collect title "Supplemental Table 8. Tests of effect modification by race and ethnicity"
+collect notes "Abbreviations: df1 - number of interaction terms tested"
+collect notes "Note: Each row displays a separate survey-weighted logistic regression of 2024 suicidal ideation on all main-model covariates plus an interaction term between race and ethnicity and the specified predictor. Estimates presented are from the design-adjusted Wald test assessing if all interaction terms for that predictor are jointly zero."
+collect notes "Health insurance status has one race and ethnicity * insurance cell where no respondents reported suicidal ideation leading to an unestimable interaction term. This cell is excluded from the model leading to N = 1,891 with 2 degrees of freedom."
+collect preview
+
+.*------------ Export? -----------------*
+di "Export STable 8? (Y/N)", _request(RESP)
+if strlower("$RESP")=="y" collect export "$out/tblS8_effect_modification_test.docx", replace
+qui else di as err "Table not saved."
+
+*-----------------------------------------------------*
+* Supplemental Table 9. Single asset model series comparison
+*-----------------------------------------------------*
+*--Generate a comparison table between demos only, demos + 1 asset, and full model.
+* Define variable macros
+global base_covs "ib4.AGE4_T4 ib1.GENDER_T4 ib1.race_col_T4 ib0.prev_depression_T4"
+global assets "ib3.hh_income_imp_tert_T4 ib3.locf_hh_savings_tert_T4 ib1.locf_hh_debt_tert_T4 ib1.insurance_binary_T4 ib1.home_own_T4 ib1.educ_college_T4 ib1.marital_binary_T4 ib1.religious_attendance_T4 ib1.employment_T4 ib1.social_support_T4"
+
+collect clear
+
+* Column 3: full model (estimated first to preserve var order)
+collect, tag(model[3]): svy, subpop(if _insample==1): logistic si_T5 $predictors, baselevels
+local N_full = e(N_sub)
+
+* Column 1: base vars only
+collect, tag(model[1]): svy, subpop(if _insample==1): logistic si_T5 $base_covs, baselevels
+
+* Column 2: base vars + 1 asset per model
+local j = 0
+foreach asset of global assets {
+    local ++j
+    di as txt "Model 2.`j': `asset'"
+    qui collect, tag(model[s`j']): svy, subpop(if _insample==1): logistic si_T5 $base_covs `asset', baselevels
+
+    * Stop if sample is not equal to the full model sample
+    if e(N_sub) != `N_full' {
+        di as err "N_sub for `asset' (`e(N_sub)') differs from fully adjusted model (`N_full')"
+        exit
+    }
+
+    * Get each assets levels and recode to display in column 2
+    qui fvexpand `asset' if _insample==1
+    local asset_tags = subinstr("`r(varlist)'", "b.", ".", .)
+    collect recode model s`j' = 2, fortags(colname[`asset_tags'])
+}
+
+* Integrate the sample size (same for all col2 items after passing check above)
+collect addtags extra[N_sub], fortags(result[N_sub])
+collect label levels extra N_sub "# observations", modify
+collect recode result N_sub = _r_b
+collect recode model s1 = 2, fortags(extra[N_sub])
+
+* Set column labels
+collect label levels model 1 "Model 1: Base covariates" ///
+                           2 "Model 2: Base + single asset" ///
+                           3 "Model 3: Fully adjusted", modify
+collect label levels result _r_b "Odds Ratio", modify
+
+* Display OR + 95% CI only
+local res "_r_b _r_ci"
+collect layout (colname extra) (model[1 2 3]#result[`res'])
+collect style use table-reg1-fv1
+collect style row stack, nobinder indent
+collect style header model, title(hide)
+
+* Style cells
+collect style cell result[_r_b _r_ci _r_se], nformat(%5.2f)
+collect style cell result, empty("--")
+collect style cell result[_r_ci], cidelimiter(", ")
+collect style cell result[_r_ci], sformat("(%s)")
+collect style cell extra[N_sub], nformat(%5.0f)
+collect style showbase factor
+collect style cell header_cell_contents[factor dimension], font(, bold) // bolded fv level headers
+collect stars _r_p 0.001 "***" 0.01 "** " 0.05 "* ", attach(_r_b) shownote
+
+*----- Label referent level rows -----*
+* Get list of base vars with no "b" (e.g., ib2.SEX_T7 -> 2.SEX_T7)
+local basetags
+foreach term of global predictors {
+    if regexm("`term'", "^ib([0-9]+)\.(.+)$") {
+        local basetags "`basetags' `=regexs(1)'.`=regexs(2)'"
+    }
+}
+
+* Replace OR with "Ref" for referents
+collect style cell colname[`basetags']#result[_r_b], nformat(%5.2f) minimum(999999, label("Ref")) font(,italic) halign(right)
+
+* Add text
+local N_fmt = strtrim(string(`N_full', "%9.0fc"))
+collect title "Supplemental Table 9. Sequential survey-weighted logistic regression models estimating 2024 suicidal ideation using 2023 characteristics"
+collect notes "Notes: CLIMB Waves 4-5 data, collected March-April 2023-2024. All models use the same analytic sample (N=`N_fmt'). Base covariates are age, gender, race and ethnicity, and prior depression."
+collect notes "Model 1 includes base covariates only. Model 2 displays each asset's odds ratios from a separate model containing that asset plus the base covariates. Base covariate estimates vary across these 10 models and are not shown. Model 3 is the main model and includes all assets."
+collect notes "Estimands: The estimates in Model 2 assess the association between each asset and suicidal ideation conditional on the base covariates. Model 3 displays the net association of all assets; this removes confounding by other assets but may mask assessment of effects that operate through overlapping pathways."
+
+* Output table
+collect preview
+
+*------------ Export? -----------------*
+di "Export Supplemental Table 9? (Y/N)", _request(RESP)
+if strlower("$RESP")=="y" collect export "$out/tblS9_sequential_models.docx", replace
+qui else di as err "Table not saved."
 
 *-----------------------------------------------------*
 * Supplemental Figure 2. Coefplot
