@@ -1,10 +1,10 @@
 *=====================================================*
 * Project: CLIMB - Assets and SI
-* File:    05_si_supplememnt.do
+* File:    05_si_supplement.do
 * Author:  Rajesh Satpathy-Horton
 * Purpose: Generate supplemental tables and figures.
 * Init:    11/05/2026
-* Updated: 11/12/2026
+* Updated: 11/16/2026
 *=====================================================*
 *-----------------------------------------------------*
 * Init
@@ -104,7 +104,7 @@ local flow_flags invited qualified has_outcome mermaid_sample
 * Retained (keep) and excluded (drop) box labels by step
 local keep_1 "Invited to Waves 4 and 5"
 
-local drop_2 "Not qualified at both waves or <=18yo at W4"
+local drop_2 "Not qualified at both waves or <18yo at W4"
 local keep_2 "Qualified at both waves"
 
 local drop_3 "Missing 2024 suicidal ideation"
@@ -477,7 +477,7 @@ if strlower("$RESP")=="y" collect export "$out/tblS6_stratified_models_allgrps.d
 qui else di as err "Table not saved."
 
 *-----------------------------------------------------*
-* Supplemental Table 8. Stratified model ARRs
+* Supplemental Table 7. Stratified model ARRs
 *-----------------------------------------------------*
 *--Generate a stratified ARR table for the supplement.
 collect clear
@@ -596,7 +596,7 @@ di "`basetags'"
 * Replace aRR with "Ref" for referents
 collect style cell colname[`basetags']#result[_r_b], nformat(%5.2f) minimum(999999, label("Ref")) font(,italic) halign(right)
 collect preview
-collect title "Supplemental Table 8. Stratified adjusted risk ratios of 2024 suicidal ideation by 2023 characteristics"
+collect title "Supplemental Table 7. Stratified adjusted risk ratios of 2024 suicidal ideation by 2023 characteristics"
 
 collect notes "Notes: From left to right, Table 4 displays the adjusted risk ratios [95% CI] estimated for the White, non-Hispanic subgroup (n=`c1'), the Black, non-Hispanic subgroup (n=`c2'), the Hispanic subgroup (n=`c3'), and the Other, non-Hispanic subgroup (n=`c4'). See Supplemental Table 4 for a table with odds ratios for each group."
 collect notes "Table presents main model adjusted risk ratios (ARR) for each covariate when all other covariates held at observed values. 95% CIs and p-values are computed on the log scale using the delta method and design-based degrees of freedom."

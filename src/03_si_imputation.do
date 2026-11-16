@@ -1,10 +1,10 @@
 *=====================================================*
 * Project: CLIMB - Assets and SI
-* File:    03_si_locf_imputation.do
+* File:    03_si_imputation.do
 * Author:  Rajesh Satpathy-Horton
 * Purpose: Implement LOCF imputation on items with missingness.
 * Init:    11/05/2026
-* Updated: 11/05/2026
+* Updated: 11/16/2026
 *=====================================================*
 *-----------------------------------------------------*
 * Init
@@ -118,6 +118,7 @@ forval i=3(-1)1 {
   
   replace locf_hh_savings_tert_T4 = 1 if `locf_target' & inrange(F18_T`i',1,2)
   replace locf_hh_savings_tert_T4 = 2 if `locf_target' & inrange(F18_T`i',3,12) 
+  // previous year data does not extend into tertile 3
 
   replace `locf_target' = 0 if !missing(locf_hh_savings_tert_T4)
   qui count if `locf_target'

@@ -4,7 +4,7 @@
 * Author:  Rajesh Satpathy-Horton
 * Purpose: Generate manuscript-ready tables and figures.
 * Init:    11/05/2026
-* Updated: 11/05/2026
+* Updated: 11/16/2026
 *=====================================================*
 *-----------------------------------------------------*
 * Init
@@ -82,7 +82,7 @@ dtable i.si_T5 i.si_T4 ${predictors}, ///
 	column(summary("N (Weighted %)")) ///
 	sample(,statistics(freq)) ///
 	title("Table 1. Survey-weighted sample characteristics") ///
-	note(`"Note: CLIMB Waves 4-5 data, collected March-April 2026. Frequencies (N) are unweighted and percentages (%) are survey weighted. All categories recorded in 2023. Suicidal ideation defined as reporting “thoughts that you would be better off dead or of hurting yourself in some way” for “several days”, “more than half the days”, or “nearly every day” in the past 2 weeks. 2023 suicidal ideation not accounted for in complete case selection and has n=1,879 total observations."')
+	note(`"Note: CLIMB Waves 4-5 data, collected March-April 2023-2024. Frequencies (N) are unweighted and percentages (%) are survey weighted. All categories recorded in 2023. Suicidal ideation defined as reporting “thoughts that you would be better off dead or of hurting yourself in some way” for “several days”, “more than half the days”, or “nearly every day” in the past 2 weeks. 2023 suicidal ideation not accounted for in complete case selection and has n=1,879 total observations."')
 collect style cell header_cell_contents[factor dimension], font(, bold) // bolded fv level headers
 collect preview 
 
@@ -103,7 +103,7 @@ local outcome  "si_T5"
 local insamp   "_insample==1" 
 local covars   "$predictors_list si_T4" 
 local tblnum   "Table 2"
-local tblnotes "Notes: CLIMB Waves 4-5 data, collected March-April 2026. Values are unweighted N (survey-weighted row %) for outcome columns and unweighted N (survey-weighted column %) for the Total column. P-values from design-based Pearson chi-square tests. Includes participants with complete cases for W5 suicidal ideation and the following Wave 4 variables: age, gender, race and ethnicity, household income, household savings, household debt, health insurance status, home ownership, education, marital status, religious service attendance, employment status, social support, and previous depression. 2023 suicidal ideation not accounted for in complete case selection and has n=1,879 total observations."
+local tblnotes "Notes: CLIMB Waves 4-5 data, collected March-April 2023-2024. Values are unweighted N (survey-weighted row %) for outcome columns and unweighted N (survey-weighted column %) for the Total column. P-values from design-based Pearson chi-square tests. Includes participants with complete cases for W5 suicidal ideation and the following Wave 4 variables: age, gender, race and ethnicity, household income, household savings, household debt, health insurance status, home ownership, education, marital status, religious service attendance, employment status, social support, and previous depression. 2023 suicidal ideation not accounted for in complete case selection and has n=1,879 total observations."
 local outfile  "$out/tbl2_sample_by_outcome_svy.docx"
 
 *----------------------------------*
@@ -306,11 +306,11 @@ collect title "Table 4. Stratified survey-weighted logistic regression estimatin
 
 * Get counts
 forval i=1/4 {
-    qui count if race_col_T4==`i'
+    qui count if race_col_T4==`i' & _insample
     local c`i' = string(`r(N)', "%5.0fc")
     di "`c`i''"
 }
-collect notes "Notes: From left to right, Table 4 displays the the odds ratios (95% CI) estimated for the White, non-Hispanic subgroup (n=`c1'), Black, non-Hispanic subgroup (N=`c2'), and the Hispanic subgroup (N=`c3'). The Other, non-Hispanic group is not shown here due to small sample size and wide intervals. Ssee Supplemental Table 4 for a model containing all stratified models."
+collect notes "Notes: From left to right, Table 4 displays the odds ratios (95% CI) estimated for the White, non-Hispanic subgroup (n=`c1'), Black, non-Hispanic subgroup (N=`c2'), and the Hispanic subgroup (N=`c3'). The Other, non-Hispanic group is not shown here due to small sample size and wide intervals. See Supplemental Table 4 for a model containing all stratified models."
 
 * Set model names
 collect label levels cmdset 1 "Model (1) White, non-Hispanic" 2 "Model (2) Black, non-Hispanic" 3 "Model (3) Hispanic", modify
