@@ -128,16 +128,17 @@ include "$mermaid_engine"
 * Create var to ID each
 g sample_status = . 
 replace sample_status = 1 if _insample
-replace sample_status = 0 if !_insample & QUAL_T4==1 & QUAL_T5==1
+replace sample_status = 0 if !_insample & (QUAL_T4==1 & QUAL_T5==1)
 la def samplbl 0 "Excluded qualified responses" 1 "Analytic sample responses", replace
 la val sample_status samplbl
 la var sample_status "Sample inclusion status"
 
 * Create table
 local demos "i.AGE4_T4 i.GENDER_T4 i.race_col_T4"
-dtable `demos', by(sample_status) svy subpop(if !missing(sample_status)) ///
-    factor(, statistics(fvrawfrequency fvrawpercent fvpercent)) ///
-    title("Supplemental Table 1. Comparison of Responses by Sample Inclusion Status")
+dtable `demos', by(sample_status) svy ///
+    sample(, statistics(freq percent)) ///
+    factor(, statistics(fvrawfrequency fvpercent)) ///
+    title("Supplemental Table 1. Comparison of responses by sample inclusion status")
 
 *------------ Export? -----------------*
 di "Export STable1? (Y/N)", _request(RESP)
