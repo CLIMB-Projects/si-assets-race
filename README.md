@@ -41,8 +41,8 @@ Some portions of the code require custom ADO files that are available by request
 
 **Missing asset data.** Three asset variables had enough missingness that we recovered values from other sources before taking complete cases:
 
-- Household income: missing CLIMB income was filled with the Wave 4 NORC panel profile income and mapped onto CLIMB's income categories (recovers 57 respondents).
-- Household savings and debt: last observation carried forward, checking Wave 3, then 2, then 1 (recovers 27 and 18 respondents, respectively).
+- Household income: missing CLIMB income was filled with the Wave 4 NORC panel profile income and mapped onto CLIMB's income categories (recovers 57 values).
+- Household savings and debt: last observation carried forward, checking Wave 3, then 2, then 1 (recovers 27 and 18 values, respectively).
 
 `05_si_supplement.do` includes a comparison of included and excluded respondents (Table S1).
 
