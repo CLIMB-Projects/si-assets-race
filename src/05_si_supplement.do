@@ -4,7 +4,7 @@
 * Author:  Rajesh Satpathy-Horton
 * Purpose: Generate supplemental tables and figures.
 * Init:    11/05/2026
-* Updated: 11/16/2026
+* Updated: 11/17/2026
 *=====================================================*
 *-----------------------------------------------------*
 * Init
@@ -128,14 +128,14 @@ include "$mermaid_engine"
 * Create var to ID each
 g sample_status = . 
 replace sample_status = 1 if _insample
-replace sample_status = 0 if !_insample & (QUAL_T4==1 & QUAL_T5==1)
-la def samplbl 0 "Excluded qualified responses" 1 "Analytic sample responses", replace
+replace sample_status = 0 if !_insample & (QUAL_T4==1 & QUAL_T5==1 & inrange(AGE4_T4, 1, 4))
+la def samplbl 0 "Excluded qualified responses due to missingness" 1 "Included analytic sample", replace
 la val sample_status samplbl
 la var sample_status "Sample inclusion status"
 
 * Create table
 local demos "i.AGE4_T4 i.GENDER_T4 i.race_col_T4"
-dtable `demos', by(sample_status) svy ///
+dtable `demos', by(sample_status, tests) svy ///
     sample(, statistics(freq percent)) ///
     factor(, statistics(fvrawfrequency fvpercent)) ///
     title("Supplemental Table 1. Comparison of responses by sample inclusion status")
@@ -264,7 +264,6 @@ collect preview
 di "Export Supplemental Table 4 (VIFs)? (Y/N)", _request(RESP)
 if strlower("$RESP")=="y" collect export "$out/tblS4_main_model_vif.docx", replace
 qui else di as err "Table not saved."
-
 
 *-----------------------------------------------------*
 * Supplemental Table 5. Adjusted risk ratios
