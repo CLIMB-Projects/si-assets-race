@@ -4,12 +4,12 @@
 * Author:  Rajesh Satpathy-Horton
 * Purpose: Generate supplemental tables and figures.
 * Init:    11/05/2026
-* Updated: 11/17/2026
+* Updated: 11/20/2026
 *=====================================================*
 *-----------------------------------------------------*
 * Init
 *-----------------------------------------------------*
-*--Init items for analysis -- uncomment if running alone
+*--Init items for analysis
 * Set globals and working dir
 // edit $climb and $proj to run in local env; other globals can be kept the same
 global climb    "C:/Users/rsatpat1/Dropbox/CLIMB Operations/Data (non-confidential)/Waves 1-7 - 08.04.2026/JHU_COVID-19 W1_W2_W3_W4_W5_W6_W7_Combined_File_20260804.dta"
@@ -186,7 +186,25 @@ collect preview
 collect export "$out/tblS2_demo_distribution_with_cps.docx", replace
 
 *-----------------------------------------------------*
-* Supplemental Table 3. Unadjusted ORs (main model)
+* Supplemental Table 3. Cell sizes by race / ethnicity
+*-----------------------------------------------------*
+*--Generate a table with cell sizes for race-stratified models.
+* Output table
+dtable $stratpred, by(race_col_T4, nototal) ///
+    svy subpop(if _insample==1) ///
+	factor(, statistics(fvrawfreq)) ///
+	column(summary("N")) ///
+	sample(,statistics(freq)) ///
+	title("Supplemental Table 3. Demographic and asset distributions across race and ethnicity groups") ///
+	note("Note: Table displays the unweighted number of participants within each category by race and ethnicity.")
+
+*------------ Export? -----------------*
+di "Export Supplemental Table 3? (Y/N)", _request(RESP)
+if strlower("$RESP")=="y" collect export "tblS3_cell_sizes_by_race.docx", replace
+qui else di as err "Table not saved."
+
+*-----------------------------------------------------*
+* Supplemental Table 4. Unadjusted ORs (main model)
 *-----------------------------------------------------*
 *--Generate table with unadjusted ORs for main model covars.
 * Iterate through each var and collect results
@@ -210,14 +228,14 @@ collect stars _r_p 0.001 "***" 0.01 "** " 0.05 "* ", attach(_r_b) shownote
 collect preview
 
 * Add text and finalize
-collect title "Supplemental Table 3. Unadjusted survey-weighted association between 2023 characteristics and 2024 suicidal ideation"
+collect title "Supplemental Table 4. Unadjusted survey-weighted association between 2023 characteristics and 2024 suicidal ideation"
 collect notes "Notes: All unadjusted models use the final analytic sample of N=1,896 participants."
 collect preview
 
-collect export "$out/tblS3_unadjusted_table.docx", replace
+collect export "$out/tblS4_unadjusted_table.docx", replace
 
 *-----------------------------------------------------*
-* Supplemental Table 4. VIF of main model
+* Supplemental Table 5. VIF of main model
 *-----------------------------------------------------*
 *--Generate VIF table for main model.
 collect clear
@@ -261,12 +279,12 @@ collect notes "Notes: VIFs estimated using unweighted regression model with iden
 collect preview
 
 *------------ Export? -----------------*
-di "Export Supplemental Table 4 (VIFs)? (Y/N)", _request(RESP)
-if strlower("$RESP")=="y" collect export "$out/tblS4_main_model_vif.docx", replace
+di "Export Supplemental Table 5 (VIFs)? (Y/N)", _request(RESP)
+if strlower("$RESP")=="y" collect export "$out/tblS5_main_model_vif.docx", replace
 qui else di as err "Table not saved."
 
 *-----------------------------------------------------*
-* Supplemental Table 5. Adjusted risk ratios
+* Supplemental Table 6. Adjusted risk ratios
 *-----------------------------------------------------*
 *--Logistic regression model estimating associations with W5 SI
 * Estimate full model - ORs estimated first to use the same table layout but cleared
@@ -391,7 +409,7 @@ collect style cell colname[`basetags']#result[_r_se], nformat(%5.2f) minimum(999
 collect preview
 
 * Add text
-collect title "Supplemental Table 5. Adjusted risk ratios of 2024 suicidal ideation by 2023 characteristics"
+collect title "Supplemental Table 6. Adjusted risk ratios of 2024 suicidal ideation by 2023 characteristics"
 collect notes "Notes: CLIMB Waves 4-5 data, collected March-April 2023-2024. Includes N=1,896 observations with complete cases."
 collect notes "Table presents main model adjusted risk ratios (ARR) for each covariate when all other covariates held at observed values. 95% CIs and p-values are computed on the log scale using the delta method and design-based degrees of freedom. Adjusted odds ratios are presented in Table 3."
 
@@ -399,12 +417,12 @@ collect notes "Table presents main model adjusted risk ratios (ARR) for each cov
 collect preview
 
 *------------ Export? -----------------*
-di "Export Supplemental Table 5? (Y/N)", _request(RESP)
-if strlower("$RESP")=="y" collect export "$out/tbS5_main_model_ARRs.docx", replace
+di "Export Supplemental Table 6? (Y/N)", _request(RESP)
+if strlower("$RESP")=="y" collect export "$out/tbS6_main_model_ARRs.docx", replace
 else di as err "Table not saved."
 
 *-----------------------------------------------------*
-* Supplemental Table 6. Stratified logistic regression models
+* Supplemental Table 7. Stratified logistic regression models
 *-----------------------------------------------------*
 *--Export survey-weighted stratified logistic regression results for paper (all groups)
 * Init stratified predictor global
@@ -455,7 +473,7 @@ di "`basetags'"
 * Replace OR with "Ref" and harmonize SD display for referents
 collect style cell colname[`basetags']#result[_r_b], nformat(%5.2f) minimum(999999, label("Ref")) font(,italic) halign(right)
 collect preview
-collect title "Supplemental Table 6. Stratified survey-weighted logistic regression estimating odds ratios of 2024 suicidal ideation using 2023 characteristics (all race and ethnicity groups)"
+collect title "Supplemental Table 7. Stratified survey-weighted logistic regression estimating odds ratios of 2024 suicidal ideation using 2023 characteristics (all race and ethnicity groups)"
 
 * Get counts
 forval i=1/4 {
@@ -463,7 +481,7 @@ forval i=1/4 {
     local c`i' = string(`r(N)', "%5.0fc")
     di "`c`i''"
 }
-collect notes "Notes: From left to right, Table 4 displays the the odds ratios (95% CI) estimated for the White, non-Hispanic subgroup (n=`c1'), the Black, non-Hispanic subgroup (N=`c2'), the Hispanic subgroup (N=`c3'), and the The Other, non-Hispanic group is not shown here due to small sample size and wide intervals."
+collect notes "Notes: From left to right, Supplemental Table 7 displays the the odds ratios (95% CI) estimated for the White, non-Hispanic subgroup (n=`c1'), the Black, non-Hispanic subgroup (N=`c2'), the Hispanic subgroup (N=`c3'), and the The Other, non-Hispanic group is not shown here due to small sample size and wide intervals."
 
 * Set model names
 collect label levels cmdset ///
@@ -472,12 +490,12 @@ collect label levels cmdset ///
 collect preview
 
 *------------ Export? -----------------*
-di "Export STable 6? (Y/N)", _request(RESP)
-if strlower("$RESP")=="y" collect export "$out/tblS6_stratified_models_allgrps.docx", replace
+di "Export STable 7? (Y/N)", _request(RESP)
+if strlower("$RESP")=="y" collect export "$out/tblS7_stratified_models_allgrps.docx", replace
 qui else di as err "Table not saved."
 
 *-----------------------------------------------------*
-* Supplemental Table 7. Stratified model ARRs
+* Supplemental Table 8. Stratified model ARRs
 *-----------------------------------------------------*
 *--Generate a stratified ARR table for the supplement.
 collect clear
@@ -596,9 +614,9 @@ di "`basetags'"
 * Replace aRR with "Ref" for referents
 collect style cell colname[`basetags']#result[_r_b], nformat(%5.2f) minimum(999999, label("Ref")) font(,italic) halign(right)
 collect preview
-collect title "Supplemental Table 7. Stratified adjusted risk ratios of 2024 suicidal ideation by 2023 characteristics"
+collect title "Supplemental Table 8. Stratified adjusted risk ratios of 2024 suicidal ideation by 2023 characteristics"
 
-collect notes "Notes: From left to right, Table 4 displays the adjusted risk ratios [95% CI] estimated for the White, non-Hispanic subgroup (n=`c1'), the Black, non-Hispanic subgroup (n=`c2'), the Hispanic subgroup (n=`c3'), and the Other, non-Hispanic subgroup (n=`c4'). See Supplemental Table 4 for a table with odds ratios for each group."
+collect notes "Notes: From left to right, Supplemental Table 8 displays the adjusted risk ratios [95% CI] estimated for the White, non-Hispanic subgroup (n=`c1'), the Black, non-Hispanic subgroup (n=`c2'), the Hispanic subgroup (n=`c3'), and the Other, non-Hispanic subgroup (n=`c4'). See Supplemental Table 4 for a table with odds ratios for each group."
 collect notes "Table presents main model adjusted risk ratios (ARR) for each covariate when all other covariates held at observed values. 95% CIs and p-values are computed on the log scale using the delta method and design-based degrees of freedom."
 
 * Set model names
@@ -608,12 +626,12 @@ collect label levels cmdset ///
 collect preview
 
 *------------ Export? -----------------*
-di "Export Supplemental Table 7? (Y/N)", _request(RESP)
-if strlower("$RESP")=="y" collect export "$out/tblS7_stratified_models_ARRs.docx", replace
+di "Export Supplemental Table 8? (Y/N)", _request(RESP)
+if strlower("$RESP")=="y" collect export "$out/tblS8_stratified_models_ARRs.docx", replace
 else di as err "Table not saved."
 
 *-----------------------------------------------------*
-* Supplemental Table 8. Joint tests of effect modification by race
+* Supplemental Table 9. Joint tests of effect modification by race
 *-----------------------------------------------------*
 *--Fit main model + one race interaction per predictor and test interaction terms jointly.
 collect clear
@@ -651,19 +669,19 @@ collect style cell result[n], nformat(%9.0fc)
 collect style cell result[F], nformat(%5.2f)
 collect style cell result[df1 df2], nformat(%3.0f)
 collect style cell result[p], nformat(%5.3f) minimum(0.001)
-collect title "Supplemental Table 8. Tests of effect modification by race and ethnicity"
+collect title "Supplemental Table 9. Tests of effect modification by race and ethnicity"
 collect notes "Abbreviations: df1 - number of interaction terms tested"
 collect notes "Note: Each row displays a separate survey-weighted logistic regression of 2024 suicidal ideation on all main-model covariates plus an interaction term between race and ethnicity and the specified predictor. Estimates presented are from the design-adjusted Wald test assessing if all interaction terms for that predictor are jointly zero."
 collect notes "Health insurance status has one race and ethnicity * insurance cell where no respondents reported suicidal ideation leading to an unestimable interaction term. This cell is excluded from the model leading to N = 1,891 with 2 degrees of freedom."
 collect preview
 
 .*------------ Export? -----------------*
-di "Export STable 8? (Y/N)", _request(RESP)
-if strlower("$RESP")=="y" collect export "$out/tblS8_effect_modification_test.docx", replace
+di "Export STable 9? (Y/N)", _request(RESP)
+if strlower("$RESP")=="y" collect export "$out/tblS9_effect_modification_test.docx", replace
 qui else di as err "Table not saved."
 
 *-----------------------------------------------------*
-* Supplemental Table 9. Single asset model series comparison
+* Supplemental Table 10. Single asset model series comparison
 *-----------------------------------------------------*
 *--Generate a comparison table between demos only, demos + 1 asset, and full model.
 * Define variable macros
@@ -741,7 +759,7 @@ collect style cell colname[`basetags']#result[_r_b], nformat(%5.2f) minimum(9999
 
 * Add text
 local N_fmt = strtrim(string(`N_full', "%9.0fc"))
-collect title "Supplemental Table 9. Sequential survey-weighted logistic regression models estimating 2024 suicidal ideation using 2023 characteristics"
+collect title "Supplemental Table 10. Sequential survey-weighted logistic regression models estimating 2024 suicidal ideation using 2023 characteristics"
 collect notes "Notes: CLIMB Waves 4-5 data, collected March-April 2023-2024. All models use the same analytic sample (N=`N_fmt'). Base covariates are age, gender, race and ethnicity, and prior depression."
 collect notes "Model 1 includes base covariates only. Model 2 displays each asset's odds ratios from a separate model containing that asset plus the base covariates. Base covariate estimates vary across these 10 models and are not shown. Model 3 is the main model and includes all assets."
 collect notes "Estimands: The estimates in Model 2 assess the association between each asset and suicidal ideation conditional on the base covariates. Model 3 displays the net association of all assets; this removes confounding by other assets but may mask assessment of effects that operate through overlapping pathways."
@@ -750,8 +768,8 @@ collect notes "Estimands: The estimates in Model 2 assess the association betwee
 collect preview
 
 *------------ Export? -----------------*
-di "Export Supplemental Table 9? (Y/N)", _request(RESP)
-if strlower("$RESP")=="y" collect export "$out/tblS9_sequential_models.docx", replace
+di "Export Supplemental Table 10? (Y/N)", _request(RESP)
+if strlower("$RESP")=="y" collect export "$out/tblS10_sequential_models.docx", replace
 qui else di as err "Table not saved."
 
 *-----------------------------------------------------*

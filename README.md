@@ -68,10 +68,11 @@ Estimates use `subpop()` rather than dropping observations, so variance estimati
 | Table S3 | 05 | Unadjusted odds ratios |
 | Table S4 | 05 | Variance inflation factors for the main model |
 | Table S5 | 05 | Adjusted risk ratios for the main model |
-| Table S6 | 05 | Stratified models, all race and ethnicity groups |
-| Table S7 | 05 | Adjusted risk ratios for the stratified models |
-| Table S8 | 05 | Joint tests of effect modification by race and ethnicity |
-| Table S9 | 05 | Base model vs. base + one asset vs. full model |
+| Table S6 | 05 | Sample cell sizes by race and ethnicity group for stratified models |
+| Table S7 | 05 | Stratified models, all race and ethnicity groups |
+| Table S8 | 05 | Adjusted risk ratios for the stratified models |
+| Table S9 | 05 | Joint tests of effect modification by race and ethnicity |
+| Table S10 | 05 | Base model vs. base + one asset vs. full model |
 | Figure S2 | 05 | Coefficient plot, main model |
 | Figure S3 | 05 | Coefficient plot, stratified models |
 
