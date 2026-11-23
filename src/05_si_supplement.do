@@ -477,7 +477,7 @@ forval i=1/4 {
     local c`i' = string(`r(N)', "%5.0fc")
     di "`c`i''"
 }
-collect notes "Notes: From left to right, Supplemental Table 7 displays the the odds ratios (95% CI) estimated for the White, non-Hispanic subgroup (n=`c1'), the Black, non-Hispanic subgroup (N=`c2'), the Hispanic subgroup (N=`c3'), and the The Other, non-Hispanic group is not shown here due to small sample size and wide intervals."
+collect notes "Notes: From left to right, Supplemental Table 7 displays the odds ratios (95% CI) estimated for the White, non-Hispanic subgroup (n=`c1'), the Black, non-Hispanic subgroup (N=`c2'), the Hispanic subgroup (N=`c3'). The Other, non-Hispanic group is not shown here due to small sample size and wide intervals."
 
 * Set model names
 collect label levels cmdset ///
