@@ -418,17 +418,13 @@ collect preview
 
 *------------ Export? -----------------*
 di "Export Supplemental Table 6? (Y/N)", _request(RESP)
-if strlower("$RESP")=="y" collect export "$out/tbS6_main_model_ARRs.docx", replace
+if strlower("$RESP")=="y" collect export "$out/tblS6_main_model_ARRs.docx", replace
 else di as err "Table not saved."
 
 *-----------------------------------------------------*
 * Supplemental Table 7. Stratified logistic regression models
 *-----------------------------------------------------*
 *--Export survey-weighted stratified logistic regression results for paper (all groups)
-* Init stratified predictor global
-global stratpred : subinstr global predictors "i.race_col_T4 " ""
-fvdel, in($stratpred) out(stratpred_list)
-
 * Collect all survey-weighted model outputs
 collect clear
 est clear
@@ -477,7 +473,7 @@ collect title "Supplemental Table 7. Stratified survey-weighted logistic regress
 
 * Get counts
 forval i=1/4 {
-    qui count if race_col_T4==`i'
+    qui count if race_col_T4==`i' & _insample==1
     local c`i' = string(`r(N)', "%5.0fc")
     di "`c`i''"
 }
@@ -675,7 +671,7 @@ collect notes "Note: Each row displays a separate survey-weighted logistic regre
 collect notes "Health insurance status has one race and ethnicity * insurance cell where no respondents reported suicidal ideation leading to an unestimable interaction term. This cell is excluded from the model leading to N = 1,891 with 2 degrees of freedom."
 collect preview
 
-.*------------ Export? -----------------*
+*------------ Export? -----------------*
 di "Export STable 9? (Y/N)", _request(RESP)
 if strlower("$RESP")=="y" collect export "$out/tblS9_effect_modification_test.docx", replace
 qui else di as err "Table not saved."
